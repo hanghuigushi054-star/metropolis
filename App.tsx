@@ -4,7 +4,7 @@
 */
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { Grid, TileData, BuildingType, CityStats, AIGoal, NewsItem, TerrainType } from './types';
-import { GRID_SIZE, BUILDINGS, TICK_RATE_MS, INITIAL_MONEY, LEVEL_REQUIREMENTS } from './constants';
+import { GRID_SIZE, BUILDINGS, TICK_RATE_MS, INITIAL_MONEY, LEVEL_REQUIREMENTS, INITIAL_STATS } from './constants';
 import IsoMap from './components/IsoMap';
 import UIOverlay from './components/UIOverlay';
 import StartScreen from './components/StartScreen';
@@ -54,8 +54,8 @@ const createInitialGrid = (): Grid => {
         height = (e - 0.25) * 1.5;
       }
 
-      // Initial ownership: Only the very center is owned.
-      const isOwned = dist < 2 && terrainType !== TerrainType.Water;
+      // Initial ownership: A larger initial area is owned.
+      const isOwned = dist < 4 && terrainType !== TerrainType.Water;
       
       row.push({ 
         x, 
@@ -78,7 +78,7 @@ function App() {
   const [aiEnabled, setAiEnabled] = useState(true);
 
   const [grid, setGrid] = useState<Grid>(createInitialGrid);
-  const [stats, setStats] = useState<CityStats>({ money: INITIAL_MONEY, population: 0, day: 1, level: 0 });
+  const [stats, setStats] = useState<CityStats>(INITIAL_STATS);
   const [selectedTool, setSelectedTool] = useState<BuildingType>(BuildingType.Road);
   
   // --- AI State ---
@@ -168,6 +168,9 @@ function App() {
       let dailyIncome = 0;
       let dailyPopGrowth = 0;
       let buildingCounts: Record<string, number> = {};
+      let primaryEduCap = 0;
+      let secondaryEduCap = 0;
+      let higherEduCap = 0;
 
       gridRef.current.flat().forEach(tile => {
         if (tile.buildingType !== BuildingType.None) {
@@ -175,6 +178,12 @@ function App() {
           dailyIncome += config.incomeGen;
           dailyPopGrowth += config.popGen;
           buildingCounts[tile.buildingType] = (buildingCounts[tile.buildingType] || 0) + 1;
+          
+          if (config.educateCapacity) {
+             if (config.educateCapacity.level === 'primary') primaryEduCap += config.educateCapacity.amount;
+             if (config.educateCapacity.level === 'secondary') secondaryEduCap += config.educateCapacity.amount;
+             if (config.educateCapacity.level === 'higher') higherEduCap += config.educateCapacity.amount;
+          }
         }
       });
 
@@ -190,6 +199,61 @@ function App() {
         if (newPop > maxPop) newPop = maxPop; // limit
         if (maxPop === 0 && prev.population > 0) newPop = Math.max(0, prev.population - 5); // people leave if no capacity
 
+        let popDiff = newPop - prev.population;
+
+        let newDemographics = { ...prev.demographics };
+        let newEducation = { ...prev.education };
+
+        if (popDiff > 0) {
+            newDemographics.children += Math.floor(popDiff * 0.2);
+            newDemographics.youngAdults += Math.floor(popDiff * 0.4);
+            newDemographics.adults += Math.floor(popDiff * 0.3);
+            newDemographics.seniors += Math.floor(popDiff * 0.1);
+            const remainder = popDiff - (Math.floor(popDiff * 0.2) + Math.floor(popDiff * 0.4) + Math.floor(popDiff * 0.3) + Math.floor(popDiff * 0.1));
+            newDemographics.youngAdults += remainder;
+            
+            newEducation.uneducated += popDiff;
+        } else if (popDiff < 0) {
+            const ratio = newPop / (prev.population || 1);
+            newDemographics.children = Math.floor(newDemographics.children * ratio);
+            newDemographics.youngAdults = Math.floor(newDemographics.youngAdults * ratio);
+            newDemographics.adults = Math.floor(newDemographics.adults * ratio);
+            newDemographics.seniors = Math.floor(newDemographics.seniors * ratio);
+            
+            newEducation.uneducated = Math.floor(newEducation.uneducated * ratio);
+            newEducation.primary = Math.floor(newEducation.primary * ratio);
+            newEducation.secondary = Math.floor(newEducation.secondary * ratio);
+            newEducation.higher = Math.floor(newEducation.higher * ratio);
+            
+            // Adjust to exact newPop
+            let currentTracked = newEducation.uneducated + newEducation.primary + newEducation.secondary + newEducation.higher;
+            if (newPop > currentTracked) {
+                newEducation.uneducated += (newPop - currentTracked);
+            }
+            
+            let currentDemoTracked = newDemographics.children + newDemographics.youngAdults + newDemographics.adults + newDemographics.seniors;
+            if (newPop > currentDemoTracked) {
+                newDemographics.adults += (newPop - currentDemoTracked);
+            }
+        }
+
+        // Apply education caps
+        if (primaryEduCap > 0 && newEducation.uneducated > 0) {
+            const educatedAmount = Math.min(primaryEduCap, newEducation.uneducated);
+            newEducation.uneducated -= educatedAmount;
+            newEducation.primary += educatedAmount;
+        }
+        if (secondaryEduCap > 0 && newEducation.primary > 0) {
+            const educatedAmount = Math.min(secondaryEduCap, newEducation.primary);
+            newEducation.primary -= educatedAmount;
+            newEducation.secondary += educatedAmount;
+        }
+        if (higherEduCap > 0 && newEducation.secondary > 0) {
+            const educatedAmount = Math.min(higherEduCap, newEducation.secondary);
+            newEducation.secondary -= educatedAmount;
+            newEducation.higher += educatedAmount;
+        }
+
         let newLevel = 0;
         for (let i = LEVEL_REQUIREMENTS.length - 1; i >= 0; i--) {
           if (newPop >= LEVEL_REQUIREMENTS[i]) {
@@ -198,11 +262,13 @@ function App() {
           }
         }
 
-        const newStats = {
+        const newStats: CityStats = {
           money: prev.money + dailyIncome,
           population: newPop,
           day: prev.day + 1,
           level: newLevel,
+          demographics: newDemographics,
+          education: newEducation,
         };
         
         // 3. Check Goal Completion

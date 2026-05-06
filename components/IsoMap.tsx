@@ -268,6 +268,46 @@ const ProceduralBuilding = React.memo(({ type, baseColor, x, y, opacity = 1, tra
             );
           case BuildingType.Road:
              return null;
+
+          case BuildingType.School:
+            return (
+              <>
+                <mesh {...commonProps} material={mainMat} geometry={boxGeo} position={[0, 0.3, 0]} scale={[0.8, 0.6, 0.8]} />
+                <mesh {...commonProps} material={new THREE.MeshStandardMaterial({color: '#ef4444'})} geometry={coneGeo} position={[0, 0.8, 0]} scale={[0.3, 0.4, 0.3]} />
+                <WindowBlock position={[0, 0.3, 0.41]} scale={[0.6, 0.2, 0.05]} />
+              </>
+            );
+
+          case BuildingType.HighSchool:
+            return (
+              <>
+                <mesh {...commonProps} material={mainMat} geometry={boxGeo} position={[-0.1, 0.4, 0]} scale={[0.7, 0.8, 0.8]} />
+                <mesh {...commonProps} material={mainMat} geometry={boxGeo} position={[0.3, 0.3, 0]} scale={[0.3, 0.6, 0.8]} />
+                <mesh {...commonProps} material={new THREE.MeshStandardMaterial({color: '#64748b'})} geometry={boxGeo} position={[-0.1, 0.85, 0]} scale={[0.75, 0.1, 0.85]} />
+                <WindowBlock position={[-0.1, 0.4, 0.41]} scale={[0.5, 0.3, 0.05]} />
+              </>
+            );
+
+          case BuildingType.University:
+            return (
+              <>
+                <mesh {...commonProps} material={mainMat} geometry={boxGeo} position={[0, 0.6, 0]} scale={[0.9, 1.2, 0.9]} />
+                <mesh {...commonProps} material={new THREE.MeshStandardMaterial({color: '#fbbf24'})} geometry={cylinderGeo} position={[0, 1.3, 0]} scale={[0.4, 0.3, 0.4]} />
+                <mesh {...commonProps} material={new THREE.MeshStandardMaterial({color: '#f59e0b'})} geometry={coneGeo} position={[0, 1.6, 0]} scale={[0.5, 0.4, 0.5]} />
+                <WindowBlock position={[0, 0.6, 0.46]} scale={[0.7, 0.8, 0.05]} />
+              </>
+            );
+
+          case BuildingType.AdvancedOffice:
+            // Very tall sleep futuristic glass block
+            const advOfficeHeight = 3.0 + hash * 2.5;
+            return (
+              <group position={[0, 0, 0]}>
+                <mesh {...commonProps} material={new THREE.MeshStandardMaterial({color: '#0f172a', roughness: 0.0, metalness: 1.0})} geometry={cylinderGeo} position={[0, advOfficeHeight/2, 0]} scale={[0.7, advOfficeHeight, 0.7]} />
+                <mesh {...commonProps} material={new THREE.MeshStandardMaterial({color: '#38bdf8', emissive: '#0284c7', emissiveIntensity: 0.5})} geometry={cylinderGeo} position={[0, advOfficeHeight/2, 0]} scale={[0.72, advOfficeHeight * 0.8, 0.72]} />
+                <mesh {...commonProps} material={new THREE.MeshStandardMaterial({color: '#f8fafc'})} geometry={coneGeo} position={[0, advOfficeHeight + 0.5, 0]} scale={[0.3, 1.0, 0.3]} />
+              </group>
+            );
           
           case BuildingType.Office:
             // Tall square glass block

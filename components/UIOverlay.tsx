@@ -2,9 +2,10 @@
  * @license
  * SPDX-License-Identifier: Apache-2.0
 */
-import React, { useEffect, useRef } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { BuildingType, CityStats, AIGoal, NewsItem } from '../types';
 import { BUILDINGS, LEVEL_NAMES, LEVEL_REQUIREMENTS } from '../constants';
+import { ChartsModal } from './ChartsModal';
 
 interface UIOverlayProps {
   stats: CityStats;
@@ -21,10 +22,14 @@ const tools = [
   BuildingType.None, // Bulldoze
   BuildingType.Road,
   BuildingType.Residential,
+  BuildingType.Park,
+  BuildingType.School,
+  BuildingType.HighSchool,
+  BuildingType.University,
   BuildingType.Commercial,
   BuildingType.Industrial,
-  BuildingType.Park,
   BuildingType.Office,
+  BuildingType.AdvancedOffice,
   BuildingType.Highrise,
   BuildingType.Mall,
   BuildingType.PowerPlant,
@@ -35,16 +40,29 @@ const ToolButton: React.FC<{
   type: BuildingType;
   isSelected: boolean;
   onClick: () => void;
-  money: number;
-  level: number;
-}> = ({ type, isSelected, onClick, money, level }) => {
+  stats: CityStats;
+}> = ({ type, isSelected, onClick, stats }) => {
   const config = BUILDINGS[type];
-  const canAfford = money >= config.cost;
+  const canAfford = stats.money >= config.cost;
   const isBulldoze = type === BuildingType.None;
-  const isLocked = config.unlockLevel !== undefined && level < config.unlockLevel;
+  const isLevelLocked = config.unlockLevel !== undefined && stats.level < config.unlockLevel;
+  
+  let eduLocked = false;
+  let eduLockReason = '';
+  if (config.requireEducation) {
+    if (config.requireEducation.level === 'higher' && stats.education.higher < config.requireEducation.amount) {
+      eduLocked = true;
+      eduLockReason = `大卒 ${config.requireEducation.amount}人必要`;
+    }
+  }
+  const isLocked = isLevelLocked || eduLocked;
   
   // Use 3D color for preview
   const bgColor = isBulldoze ? config.color : config.color;
+
+  let title = config.description;
+  if (isLevelLocked) title = `レベル ${config.unlockLevel} が必要です`;
+  else if (eduLocked) title = eduLockReason;
 
   return (
     <button
@@ -56,7 +74,7 @@ const ToolButton: React.FC<{
         ${isSelected ? 'border-white bg-white/20 scale-110 z-10' : 'border-gray-600 bg-gray-900/80 hover:bg-gray-800'}
         ${isLocked ? 'opacity-30 cursor-not-allowed grayscale' : !isBulldoze && !canAfford ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'}
       `}
-      title={isLocked ? `レベル ${config.unlockLevel} が必要です` : config.description}
+      title={title}
     >
       <div className="w-6 h-6 md:w-8 md:h-8 rounded mb-0.5 md:mb-1 border border-black/30 shadow-inner flex items-center justify-center overflow-hidden" style={{ backgroundColor: isBulldoze ? 'transparent' : bgColor }}>
         {isBulldoze && <div className="w-full h-full bg-red-600 text-white flex justify-center items-center font-bold text-base md:text-lg">✕</div>}
@@ -67,8 +85,11 @@ const ToolButton: React.FC<{
       {config.cost > 0 && !isLocked && (
         <span className={`text-[8px] md:text-[10px] font-mono leading-none ${canAfford ? 'text-green-300' : 'text-red-400'}`}>${config.cost}</span>
       )}
-      {isLocked && (
+      {isLevelLocked && (
         <span className="text-[8px] md:text-[10px] font-mono leading-none text-red-300 font-bold whitespace-nowrap">Lv {config.unlockLevel}</span>
+      )}
+      {eduLocked && !isLevelLocked && (
+        <span className="text-[8px] md:text-[10px] font-mono leading-none text-red-300 font-bold whitespace-nowrap">学歴不足</span>
       )}
     </button>
   );
@@ -85,6 +106,7 @@ const UIOverlay: React.FC<UIOverlayProps> = ({
   aiEnabled
 }) => {
   const newsRef = useRef<HTMLDivElement>(null);
+  const [showCharts, setShowCharts] = useState(false);
 
   // Auto-scroll news
   useEffect(() => {
@@ -103,11 +125,12 @@ const UIOverlay: React.FC<UIOverlayProps> = ({
         <div className="flex flex-col gap-2 w-full md:w-auto">
           {/* Level Bar */}
           <div className="bg-gray-900/90 text-white px-3 py-2 rounded-xl border border-gray-700 shadow-xl backdrop-blur-md flex items-center justify-between gap-4">
-             <div className="flex flex-col">
+             <div className="flex flex-col flex-1 pl-1">
                <span className="text-[10px] text-gray-400 uppercase font-bold tracking-widest">{LEVEL_NAMES[stats.level]}</span>
-               <span className="text-sm font-bold text-amber-400">Lv {stats.level}</span>
+               <span className="text-sm font-bold text-amber-400 whitespace-nowrap">Lv {stats.level}</span>
              </div>
-             <div className="flex-1 w-full bg-gray-800 h-2 rounded-full overflow-hidden">
+             
+             <div className="flex-1 w-full min-w-[50px] bg-gray-800 h-2 rounded-full overflow-hidden">
                {stats.level < LEVEL_REQUIREMENTS.length - 1 ? (
                  <div 
                    className="bg-amber-400 h-full transition-all duration-1000" 
@@ -117,9 +140,18 @@ const UIOverlay: React.FC<UIOverlayProps> = ({
                  <div className="bg-amber-400 h-full w-full" />
                )}
              </div>
+             
              {stats.level < LEVEL_REQUIREMENTS.length - 1 && (
                <span className="text-[10px] text-gray-500 font-mono text-right w-12">{stats.population}/{LEVEL_REQUIREMENTS[stats.level+1]}</span>
              )}
+             
+             <button
+               onClick={() => setShowCharts(true)}
+               className="ml-2 bg-slate-700 hover:bg-slate-600 text-white px-2 py-1 rounded text-xs font-bold transition-colors border border-slate-500 flex-shrink-0"
+               title="都市の統計グラフを表示"
+             >
+               📊 統計
+             </button>
           </div>
           
           <div className="bg-gray-900/90 text-white p-2 md:p-3 rounded-xl border border-gray-700 shadow-2xl backdrop-blur-md flex gap-3 md:gap-6 items-center justify-between md:justify-start w-full md:w-auto">
@@ -235,8 +267,7 @@ const UIOverlay: React.FC<UIOverlayProps> = ({
                 type={type}
                 isSelected={selectedTool === type}
                 onClick={() => onSelectTool(type)}
-                money={stats.money}
-                level={stats.level}
+                stats={stats}
               />
             ))}
           </div>
@@ -275,6 +306,8 @@ const UIOverlay: React.FC<UIOverlayProps> = ({
       <div className="absolute bottom-1 right-2 md:right-4 text-[8px] md:text-[9px] text-white/30 font-mono text-right pointer-events-auto hover:text-white/60 transition-colors">
         <a href="https://x.com/ammaar" target="_blank" rel="noreferrer">制作: @ammaar</a>
       </div>
+
+      {showCharts && <ChartsModal stats={stats} onClose={() => setShowCharts(false)} />}
     </div>
   );
 };

@@ -9,7 +9,11 @@ export enum BuildingType {
   Commercial = 'Commercial',
   Industrial = 'Industrial',
   Park = 'Park',
+  School = 'School',
+  HighSchool = 'HighSchool',
+  University = 'University',
   Office = 'Office',
+  AdvancedOffice = 'AdvancedOffice',
   Highrise = 'Highrise',
   Mall = 'Mall',
   PowerPlant = 'PowerPlant',
@@ -33,6 +37,8 @@ export interface BuildingConfig {
   popGen: number; // Population generation per tick
   incomeGen: number; // Money generation per tick
   unlockLevel?: number; // Optional level requirement
+  educateCapacity?: { level: 'primary' | 'secondary' | 'higher', amount: number }; // How many it can educate per tick
+  requireEducation?: { level: 'higher', amount: number }; // Requirement to build
 }
 
 export interface TileData {
@@ -42,17 +48,32 @@ export interface TileData {
   terrainType: TerrainType;
   height: number;
   isOwned: boolean;
-  // Suggested by AI for visual variety later
   variant?: number;
 }
 
 export type Grid = TileData[][];
+
+export interface DemographicStats {
+  children: number;
+  youngAdults: number;
+  adults: number;
+  seniors: number;
+}
+
+export interface EducationStats {
+  uneducated: number;
+  primary: number;
+  secondary: number;
+  higher: number;
+}
 
 export interface CityStats {
   money: number;
   population: number;
   day: number;
   level: number;
+  demographics: DemographicStats;
+  education: EducationStats;
 }
 
 export interface AIGoal {

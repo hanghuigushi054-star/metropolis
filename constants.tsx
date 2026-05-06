@@ -11,6 +11,25 @@ export const GRID_SIZE = 15;
 export const TICK_RATE_MS = 2000; // Game loop updates every 2 seconds
 export const INITIAL_MONEY = 1000;
 
+export const INITIAL_STATS = {
+  money: INITIAL_MONEY,
+  population: 0,
+  day: 1,
+  level: 0,
+  demographics: {
+    children: 0,
+    youngAdults: 0,
+    adults: 0,
+    seniors: 0,
+  },
+  education: {
+    uneducated: 0,
+    primary: 0,
+    secondary: 0,
+    higher: 0,
+  }
+};
+
 export const BUILDINGS: Record<BuildingType, BuildingConfig> = {
   [BuildingType.None]: {
     type: BuildingType.None,
@@ -66,6 +85,39 @@ export const BUILDINGS: Record<BuildingType, BuildingConfig> = {
     popGen: 1,
     incomeGen: 0,
   },
+  [BuildingType.School]: {
+    type: BuildingType.School,
+    cost: 300,
+    name: '小学校',
+    description: '住人を初等教育します（20人/日）',
+    color: '#fcd34d', // amber-300
+    popGen: 0,
+    incomeGen: -10,
+    unlockLevel: 1,
+    educateCapacity: { level: 'primary', amount: 20 },
+  },
+  [BuildingType.HighSchool]: {
+    type: BuildingType.HighSchool,
+    cost: 800,
+    name: '高校',
+    description: '住人を中等教育します（20人/日）',
+    color: '#fbbf24', // amber-400
+    popGen: 0,
+    incomeGen: -20,
+    unlockLevel: 2,
+    educateCapacity: { level: 'secondary', amount: 20 },
+  },
+  [BuildingType.University]: {
+    type: BuildingType.University,
+    cost: 2500,
+    name: '大学',
+    description: '住人を高等教育します（20人/日）',
+    color: '#f59e0b', // amber-500
+    popGen: 0,
+    incomeGen: -50,
+    unlockLevel: 3,
+    educateCapacity: { level: 'higher', amount: 20 },
+  },
   [BuildingType.Office]: {
     type: BuildingType.Office,
     cost: 1000,
@@ -75,6 +127,17 @@ export const BUILDINGS: Record<BuildingType, BuildingConfig> = {
     popGen: 0,
     incomeGen: 100,
     unlockLevel: 2,
+  },
+  [BuildingType.AdvancedOffice]: {
+    type: BuildingType.AdvancedOffice,
+    cost: 3000,
+    name: '高度オフィス',
+    description: '資金 +400/日 (大卒50人以上)',
+    color: '#1d4ed8', // blue-700
+    popGen: 0,
+    incomeGen: 400,
+    unlockLevel: 4,
+    requireEducation: { level: 'higher', amount: 50 },
   },
   [BuildingType.Highrise]: {
     type: BuildingType.Highrise,
