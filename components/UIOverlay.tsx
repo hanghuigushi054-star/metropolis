@@ -16,6 +16,7 @@ interface UIOverlayProps {
   onClaimReward: () => void;
   isGeneratingGoal: boolean;
   aiEnabled: boolean;
+  onReset: () => void;
 }
 
 const tools = [
@@ -69,27 +70,27 @@ const ToolButton: React.FC<{
       onClick={onClick}
       disabled={isLocked || (!isBulldoze && !canAfford)}
       className={`
-        relative flex flex-col items-center justify-center rounded-lg border-2 transition-all shadow-lg backdrop-blur-sm flex-shrink-0
-        w-14 h-14 md:w-16 md:h-16
-        ${isSelected ? 'border-white bg-white/20 scale-110 z-10' : 'border-gray-600 bg-gray-900/80 hover:bg-gray-800'}
+        relative flex flex-col items-center justify-center rounded-[16px] border transition-all shadow-[0_4px_16px_rgba(0,0,0,0.2)] backdrop-blur-md flex-shrink-0
+        w-16 h-16 md:w-[72px] md:h-[72px]
+        ${isSelected ? 'border-white/50 bg-white/20 scale-105 z-10 shadow-[0_8px_32px_rgba(255,255,255,0.15)]' : 'border-white/10 bg-black/40 hover:bg-white/10 hover:border-white/20'}
         ${isLocked ? 'opacity-30 cursor-not-allowed grayscale' : !isBulldoze && !canAfford ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'}
       `}
       title={title}
     >
-      <div className="w-6 h-6 md:w-8 md:h-8 rounded mb-0.5 md:mb-1 border border-black/30 shadow-inner flex items-center justify-center overflow-hidden" style={{ backgroundColor: isBulldoze ? 'transparent' : bgColor }}>
-        {isBulldoze && <div className="w-full h-full bg-red-600 text-white flex justify-center items-center font-bold text-base md:text-lg">✕</div>}
-        {type === BuildingType.Road && <div className="w-full h-2 bg-gray-800 transform -rotate-45"></div>}
-        {isLocked && <div className="absolute font-bold text-white drop-shadow-md text-xs md:text-sm">🔒</div>}
+      <div className="w-8 h-8 md:w-10 md:h-10 rounded-xl mb-1 border border-white/10 shadow-inner flex items-center justify-center overflow-hidden" style={{ backgroundColor: isBulldoze ? 'transparent' : bgColor }}>
+        {isBulldoze && <div className="w-full h-full bg-red-500/80 text-white flex justify-center items-center font-bold text-lg md:text-xl">✕</div>}
+        {type === BuildingType.Road && <div className="w-full h-1.5 bg-white/20 transform -rotate-45"></div>}
+        {isLocked && <div className="absolute font-bold text-white/50 drop-shadow-md text-sm md:text-base">🔒</div>}
       </div>
-      <span className="text-[8px] md:text-[10px] font-bold text-white uppercase tracking-wider drop-shadow-md leading-none">{config.name}</span>
+      <span className="text-[8px] md:text-[9px] font-semibold text-white/80 uppercase tracking-widest drop-shadow-sm leading-none">{config.name}</span>
       {config.cost > 0 && !isLocked && (
-        <span className={`text-[8px] md:text-[10px] font-mono leading-none ${canAfford ? 'text-green-300' : 'text-red-400'}`}>${config.cost}</span>
+        <span className={`text-[9px] font-mono leading-tight mt-0.5 ${canAfford ? 'text-emerald-300' : 'text-red-400'}`}>${config.cost}</span>
       )}
       {isLevelLocked && (
-        <span className="text-[8px] md:text-[10px] font-mono leading-none text-red-300 font-bold whitespace-nowrap">Lv {config.unlockLevel}</span>
+        <span className="text-[8px] md:text-[9px] font-semibold leading-tight mt-0.5 text-red-300 bg-red-500/20 px-1.5 rounded-sm">Lv {config.unlockLevel}</span>
       )}
       {eduLocked && !isLevelLocked && (
-        <span className="text-[8px] md:text-[10px] font-mono leading-none text-red-300 font-bold whitespace-nowrap">学歴不足</span>
+        <span className="text-[8px] md:text-[9px] font-semibold leading-tight mt-0.5 text-red-300 bg-red-500/20 px-1.5 rounded-sm">学歴</span>
       )}
     </button>
   );
@@ -103,7 +104,8 @@ const UIOverlay: React.FC<UIOverlayProps> = ({
   newsFeed,
   onClaimReward,
   isGeneratingGoal,
-  aiEnabled
+  aiEnabled,
+  onReset
 }) => {
   const newsRef = useRef<HTMLDivElement>(null);
   const [showCharts, setShowCharts] = useState(false);
@@ -116,95 +118,102 @@ const UIOverlay: React.FC<UIOverlayProps> = ({
   }, [newsFeed]);
 
   return (
-    <div className="absolute inset-0 pointer-events-none flex flex-col justify-between p-2 md:p-4 font-sans z-10">
+    <div className="absolute inset-0 pointer-events-none flex flex-col justify-between p-3 md:p-6 font-sans z-10">
       
       {/* Top Bar: Stats & Goal */}
-      <div className="flex flex-col md:flex-row md:justify-between md:items-start pointer-events-auto gap-2 w-full max-w-full">
+      <div className="flex flex-col md:flex-row md:justify-between md:items-start pointer-events-auto gap-4 w-full max-w-full">
         
         {/* Stats */}
-        <div className="flex flex-col gap-2 w-full md:w-auto">
+        <div className="flex flex-col gap-3 w-full md:w-auto text-white">
           {/* Level Bar */}
-          <div className="bg-gray-900/90 text-white px-3 py-2 rounded-xl border border-gray-700 shadow-xl backdrop-blur-md flex items-center justify-between gap-4">
-             <div className="flex flex-col flex-1 pl-1">
-               <span className="text-[10px] text-gray-400 uppercase font-bold tracking-widest">{LEVEL_NAMES[stats.level]}</span>
-               <span className="text-sm font-bold text-amber-400 whitespace-nowrap">Lv {stats.level}</span>
+          <div className="bg-black/20 text-white px-4 py-3 rounded-2xl border border-white/10 shadow-[0_4px_24px_rgba(0,0,0,0.5)] backdrop-blur-2xl flex items-center justify-between gap-5">
+             <div className="flex flex-col flex-1">
+               <span className="text-[10px] text-white/50 uppercase font-semibold tracking-[0.2em]">{LEVEL_NAMES[stats.level]}</span>
+               <span className="text-sm font-bold text-white whitespace-nowrap">Level {stats.level}</span>
              </div>
              
-             <div className="flex-1 w-full min-w-[50px] bg-gray-800 h-2 rounded-full overflow-hidden">
+             <div className="flex-1 w-full min-w-[80px] bg-white/10 h-2 pl-px pr-px rounded-full overflow-hidden flex items-center justify-start border border-white/5 shadow-inner">
                {stats.level < LEVEL_REQUIREMENTS.length - 1 ? (
                  <div 
-                   className="bg-amber-400 h-full transition-all duration-1000" 
+                   className="bg-gradient-to-r from-cyan-400 to-blue-400 h-1.5 rounded-full shadow-[0_0_8px_rgba(34,211,238,0.5)] transition-all duration-1000 ease-out" 
                    style={{ width: `${Math.min(100, Math.max(0, (stats.population - LEVEL_REQUIREMENTS[stats.level]) / (LEVEL_REQUIREMENTS[stats.level+1] - LEVEL_REQUIREMENTS[stats.level]) * 100))}%` }}
                  />
                ) : (
-                 <div className="bg-amber-400 h-full w-full" />
+                 <div className="bg-gradient-to-r from-cyan-400 to-blue-400 h-1.5 rounded-full w-full" />
                )}
              </div>
              
              {stats.level < LEVEL_REQUIREMENTS.length - 1 && (
-               <span className="text-[10px] text-gray-500 font-mono text-right w-12">{stats.population}/{LEVEL_REQUIREMENTS[stats.level+1]}</span>
+               <span className="text-[10px] text-white/60 font-mono font-medium text-right w-12">{stats.population}/{LEVEL_REQUIREMENTS[stats.level+1]}</span>
              )}
              
              <button
                onClick={() => setShowCharts(true)}
-               className="ml-2 bg-slate-700 hover:bg-slate-600 text-white px-2 py-1 rounded text-xs font-bold transition-colors border border-slate-500 flex-shrink-0"
+               className="ml-2 bg-white/10 hover:bg-white/20 text-white px-3 py-1.5 rounded-lg text-xs font-semibold transition-all border border-white/10 flex-shrink-0 backdrop-blur-sm"
                title="都市の統計グラフを表示"
              >
-               📊 統計
+               統計
+             </button>
+             <button
+               onClick={onReset}
+               className="bg-red-500/20 hover:bg-red-500/40 text-red-200 px-3 py-1.5 rounded-lg text-xs font-semibold transition-all border border-red-500/30 flex-shrink-0 ml-1 backdrop-blur-sm"
+               title="ゲームをリセットする"
+             >
+               リセット
              </button>
           </div>
           
-          <div className="bg-gray-900/90 text-white p-2 md:p-3 rounded-xl border border-gray-700 shadow-2xl backdrop-blur-md flex gap-3 md:gap-6 items-center justify-between md:justify-start w-full md:w-auto">
+          <div className="bg-black/20 text-white p-3 md:p-4 rounded-2xl border border-white/10 shadow-[0_4px_24px_rgba(0,0,0,0.5)] backdrop-blur-2xl flex gap-4 md:gap-8 items-center justify-between w-full md:w-auto">
             <div className="flex flex-col">
-              <span className="text-[8px] md:text-[10px] text-gray-400 uppercase font-bold tracking-widest">資金</span>
-              <span className="text-lg md:text-2xl font-black text-green-400 font-mono drop-shadow-md">${stats.money.toLocaleString()}</span>
+              <span className="text-[9px] md:text-[10px] text-white/50 uppercase font-semibold tracking-[0.2em] mb-0.5">Funds</span>
+              <span className="text-lg md:text-2xl font-bold text-emerald-400 font-mono tracking-tight drop-shadow-sm">${stats.money.toLocaleString()}</span>
             </div>
-            <div className="w-px h-6 md:h-8 bg-gray-700"></div>
+            <div className="w-px h-8 bg-white/10"></div>
             <div className="flex flex-col">
-              <span className="text-[8px] md:text-[10px] text-gray-400 uppercase font-bold tracking-widest">市民</span>
-              <span className="text-base md:text-xl font-bold text-blue-300 font-mono drop-shadow-md">{stats.population.toLocaleString()}</span>
+              <span className="text-[9px] md:text-[10px] text-white/50 uppercase font-semibold tracking-[0.2em] mb-0.5">Citizens</span>
+              <span className="text-base md:text-xl font-bold text-cyan-300 font-mono tracking-tight drop-shadow-sm">{stats.population.toLocaleString()}</span>
             </div>
-            <div className="w-px h-6 md:h-8 bg-gray-700"></div>
+            <div className="w-px h-8 bg-white/10"></div>
             <div className="flex flex-col items-end">
-               <span className="text-[8px] md:text-[10px] text-gray-400 uppercase font-bold tracking-widest">日目</span>
-               <span className="text-base md:text-lg font-bold text-white font-mono">{stats.day}</span>
+               <span className="text-[9px] md:text-[10px] text-white/50 uppercase font-semibold tracking-[0.2em] mb-0.5">Day</span>
+               <span className="text-base md:text-xl text-white font-mono tracking-tight">{stats.day}</span>
             </div>
           </div>
         </div>
 
         {/* AI Goal Panel */}
-        <div className={`w-full md:w-80 bg-indigo-900/90 text-white rounded-xl border-2 border-indigo-500/50 shadow-[0_0_20px_rgba(99,102,241,0.4)] backdrop-blur-md overflow-hidden transition-all ${!aiEnabled ? 'opacity-80 grayscale-[0.5]' : ''}`}>
-          <div className="bg-indigo-800/80 px-3 md:px-4 py-1.5 md:py-2 flex justify-between items-center border-b border-indigo-600">
-            <span className="font-bold uppercase text-[10px] md:text-xs tracking-widest flex items-center gap-2 shadow-sm">
+        <div className={`w-full md:w-80 bg-black/20 text-white rounded-2xl border border-white/10 shadow-[0_4px_24px_rgba(0,0,0,0.5)] backdrop-blur-2xl overflow-hidden transition-all ${!aiEnabled ? 'opacity-50 grayscale' : ''}`}>
+          <div className="bg-white/5 border-b border-white/5 px-4 py-3 flex justify-between items-center">
+            <span className="font-semibold uppercase text-[10px] md:text-xs tracking-[0.2em] flex items-center gap-2">
               {aiEnabled ? (
                 <>
-                  <span className={`w-2 h-2 rounded-full ${isGeneratingGoal ? 'bg-yellow-400 animate-ping' : 'bg-cyan-400 animate-pulse'}`}></span>
-                  AIアドバイザー
+                  <span className={`w-1.5 h-1.5 rounded-full ${isGeneratingGoal ? 'bg-yellow-400 shadow-[0_0_8px_rgba(250,204,21,0.8)] animate-pulse' : 'bg-cyan-400 shadow-[0_0_8px_rgba(34,211,238,0.8)]'}`}></span>
+                  AI Advisor
                 </>
               ) : (
                 <>
-                  <span className="w-2 h-2 rounded-full bg-green-400"></span>
-                  サンドボックス
+                  <span className="w-1.5 h-1.5 rounded-full bg-emerald-400"></span>
+                  Sandbox
                 </>
               )}
             </span>
-            {isGeneratingGoal && aiEnabled && <span className="text-[10px] animate-pulse text-yellow-300 font-mono">思考中...</span>}
+            {isGeneratingGoal && aiEnabled && <span className="text-[10px] animate-pulse text-yellow-300/80 font-mono tracking-widest uppercase">Thinking...</span>}
           </div>
           
-          <div className="p-3 md:p-4">
+          <div className="p-4 md:p-5">
             {aiEnabled ? (
               currentGoal ? (
                 <>
-                  <p className="text-xs md:text-sm font-medium text-indigo-100 mb-2 md:mb-3 leading-tight drop-shadow">"{currentGoal.description}"</p>
+                  <p className="text-sm md:text-base font-medium text-white mb-4 leading-relaxed font-serif italic text-white/90">"{currentGoal.description}"</p>
                   
-                  <div className="flex justify-between items-center mt-1 md:mt-2 bg-indigo-950/60 p-1.5 md:p-2 rounded-lg border border-indigo-700/50">
-                    <div className="text-[10px] md:text-xs text-gray-300">
-                      目標: <span className="font-mono font-bold text-white">
+                  <div className="flex justify-between items-center mt-2 bg-black/30 p-2.5 rounded-xl border border-white/5">
+                    <div className="text-[10px] md:text-xs text-white/60 uppercase tracking-widest font-semibold">
+                      Target: <span className="font-mono text-white tracking-tight ml-1">
                         {currentGoal.targetType === 'building_count' ? BUILDINGS[currentGoal.buildingType!].name : 
-                         currentGoal.targetType === 'money' ? '$' : '人口 '} {currentGoal.targetValue}
+                         currentGoal.targetType === 'money' ? '$' : 'POP. '} {currentGoal.targetValue}
                       </span>
                     </div>
-                    <div className="text-[10px] md:text-xs text-yellow-300 font-bold font-mono bg-yellow-900/50 px-2 py-0.5 rounded border border-yellow-600/50">
+                    <div className="text-[10px] md:text-xs text-emerald-300 font-bold font-mono bg-emerald-500/10 px-2.5 py-1 rounded-lg border border-emerald-500/20">
                       +${currentGoal.reward}
                     </div>
                   </div>
@@ -212,24 +221,24 @@ const UIOverlay: React.FC<UIOverlayProps> = ({
                   {currentGoal.completed && (
                     <button
                       onClick={onClaimReward}
-                      className="mt-2 md:mt-3 w-full bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-500 hover:to-emerald-500 text-white font-bold py-1.5 md:py-2 px-4 rounded shadow-[0_0_15px_rgba(34,197,94,0.6)] transition-all animate-bounce text-xs md:text-sm uppercase tracking-wide border border-green-400/50"
+                      className="mt-4 w-full bg-emerald-500/20 hover:bg-emerald-500/30 text-emerald-300 font-semibold py-2.5 px-4 rounded-xl shadow-[0_0_15px_rgba(16,185,129,0.3)] transition-all animate-bounce text-xs uppercase tracking-widest border border-emerald-500/30"
                     >
                       報酬を受け取る
                     </button>
                   )}
                 </>
               ) : (
-                <div className="text-xs md:text-sm text-gray-400 py-2 italic flex items-center gap-2">
-                  <svg className="animate-spin h-3 w-3 md:h-4 md:w-4 text-indigo-400" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                <div className="text-xs md:text-sm text-white/40 py-3 flex items-center gap-3">
+                  <svg className="animate-spin h-4 w-4 text-white/30" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
                     <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
                     <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
                   </svg>
-                  都市データを分析中...
+                  <span className="uppercase tracking-[0.2em] text-[10px] font-semibold">Analyzing City Data...</span>
                 </div>
               )
             ) : (
-              <div className="text-xs md:text-sm text-indigo-200/70 py-1">
-                 <p className="mb-1">フリープレイモードが有効です。</p>
+              <div className="text-xs md:text-sm text-white/50 py-2">
+                 <p className="mb-1 leading-relaxed">フリープレイモードが有効です。<br/>AIからの目標提案はありません。</p>
               </div>
             )}
           </div>
@@ -237,30 +246,11 @@ const UIOverlay: React.FC<UIOverlayProps> = ({
       </div>
 
       {/* Bottom Bar: Tools & News */}
-      <div className="flex flex-col-reverse md:flex-row md:justify-between md:items-end pointer-events-auto mt-auto gap-2 w-full max-w-full">
+      <div className="flex flex-col-reverse md:flex-row md:justify-between md:items-end pointer-events-auto mt-auto gap-4 w-full max-w-full">
         
-        {/* Toolbar - Reversed on Mobile so it appears below News (in DOM order is News -> Toolbar with col-reverse, but visually we want Toolbar bottom, News Top on mobile. 
-            Actually, visually we want:
-            Mobile: 
-            [News Feed]
-            [Toolbar]
-            
-            Desktop:
-            [Toolbar] ... [News Feed]
-            
-            If container is flex-col-reverse:
-            1. Child (Toolbar) -> Bottom
-            2. Child (News) -> Top
-            
-            If container is md:flex-row:
-            1. Child (Toolbar) -> Left
-            2. Child (News) -> Right
-            
-            This works perfectly.
-        */}
-        
-        <div className="flex gap-1 md:gap-2 bg-gray-900/80 p-1 md:p-2 rounded-2xl border border-gray-600/50 backdrop-blur-xl shadow-2xl w-full md:w-auto overflow-x-auto no-scrollbar justify-start md:justify-start">
-          <div className="flex gap-1 md:gap-2 min-w-max px-1">
+        {/* Toolbar */}
+        <div className="flex gap-2 md:gap-3 bg-black/20 p-2 md:p-3 rounded-[24px] border border-white/10 backdrop-blur-2xl shadow-[0_8px_32px_rgba(0,0,0,0.5)] w-full md:w-auto overflow-x-auto no-scrollbar justify-start md:justify-start">
+          <div className="flex gap-2 md:gap-3 min-w-max px-1">
             {tools.map((type) => (
               <ToolButton
                 key={type}
@@ -271,30 +261,27 @@ const UIOverlay: React.FC<UIOverlayProps> = ({
               />
             ))}
           </div>
-          <div className="text-[8px] text-gray-500 uppercase writing-mode-vertical flex items-center justify-center font-bold tracking-widest border-l border-gray-700 pl-1 ml-1 select-none">建設</div>
+          <div className="text-[10px] text-white/40 uppercase writing-mode-vertical flex items-center justify-center font-bold tracking-[0.2em] border-l border-white/10 pl-2 ml-1 select-none">BUILD</div>
         </div>
 
         {/* News Feed */}
-        <div className="w-full md:w-80 h-32 md:h-48 bg-black/80 text-white rounded-xl border border-gray-700/80 backdrop-blur-xl shadow-2xl flex flex-col overflow-hidden relative">
-          <div className="bg-gray-800/90 px-3 py-1.5 text-[10px] font-bold uppercase tracking-widest text-gray-300 border-b border-gray-600 flex justify-between items-center">
-            <span>シティフィード</span>
-            <span className={`w-1.5 h-1.5 rounded-full ${aiEnabled ? 'bg-red-500 animate-pulse' : 'bg-gray-500'}`}></span>
+        <div className="w-full md:w-80 h-32 md:h-48 bg-black/30 text-white rounded-2xl border border-white/10 backdrop-blur-2xl shadow-[0_8px_32px_rgba(0,0,0,0.5)] flex flex-col overflow-hidden relative">
+          <div className="bg-white/5 border-b border-white/5 px-4 py-2 text-[10px] font-semibold uppercase tracking-[0.2em] text-white/70 flex justify-between items-center z-10">
+            <span>CITY FEED</span>
+            <span className={`w-1.5 h-1.5 rounded-full ${aiEnabled ? 'bg-red-500 shadow-[0_0_8px_rgba(239,68,68,0.8)] animate-pulse' : 'bg-white/20'}`}></span>
           </div>
           
-          {/* Scanline effect */}
-          <div className="absolute inset-0 pointer-events-none bg-[linear-gradient(to_bottom,rgba(255,255,255,0)_50%,rgba(0,0,0,0.1)_50%)] bg-[length:100%_4px] opacity-30 z-20"></div>
-          
-          <div ref={newsRef} className="flex-1 overflow-y-auto p-2 md:p-3 space-y-2 text-[10px] md:text-xs font-mono scroll-smooth mask-image-b z-10">
-            {newsFeed.length === 0 && <div className="text-gray-500 italic text-center mt-10">アクティブなニュースはありません。</div>}
+          <div ref={newsRef} className="flex-1 overflow-y-auto p-3 space-y-2 text-xs font-sans tracking-wide scroll-smooth mask-image-b z-10">
+            {newsFeed.length === 0 && <div className="text-white/30 italic text-center mt-10 text-[10px]">No active news.</div>}
             {newsFeed.map((news) => (
               <div key={news.id} className={`
-                border-l-2 pl-2 py-1 transition-all animate-fade-in leading-tight relative
-                ${news.type === 'positive' ? 'border-green-500 text-green-200 bg-green-900/20' : ''}
-                ${news.type === 'negative' ? 'border-red-500 text-red-200 bg-red-900/20' : ''}
-                ${news.type === 'neutral' ? 'border-blue-400 text-blue-100 bg-blue-900/20' : ''}
+                pl-3 py-1.5 transition-all animate-fade-in leading-relaxed relative rounded-r-lg
+                ${news.type === 'positive' ? 'border-l-2 border-emerald-400 text-emerald-100 bg-emerald-500/10' : ''}
+                ${news.type === 'negative' ? 'border-l-2 border-red-400 text-red-100 bg-red-500/10' : ''}
+                ${news.type === 'neutral' ? 'border-l-2 border-cyan-400 text-cyan-100 bg-cyan-500/10' : ''}
               `}>
-                <span className="opacity-70 text-[8px] absolute top-0.5 right-1">{new Date(Number(news.id.split('.')[0])).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}</span>
-                {news.text}
+                <span className="opacity-40 text-[9px] font-mono absolute top-1 right-2">{new Date(Number(news.id.split('.')[0])).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}</span>
+                <span className="pr-10 block text-[11px] font-medium opacity-90">{news.text}</span>
               </div>
             ))}
           </div>
