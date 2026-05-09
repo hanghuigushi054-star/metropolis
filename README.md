@@ -1,20 +1,17 @@
-<div align="center">
-<img width="1200" height="475" alt="GHBanner" src="https://github.com/user-attachments/assets/0aa67016-6eaf-458a-adb2-6e31a0763ed6" />
-</div>
-
-# Run and deploy your AI Studio app
-
-This contains everything you need to run your app locally.
-
-View your app in AI Studio: https://ai.studio/apps/f38cb4d5-43e1-4432-a73c-4a42d01089fc
-
-## Run Locally
-
-**Prerequisites:**  Node.js
-
-
-1. Install dependencies:
-   `npm install`
-2. Set the `GEMINI_API_KEY` in [.env.local](.env.local) to your Gemini API key
-3. Run the app:
-   `npm run dev`
+## 概要 
+ブラウザ上で動作する、3Dアイソメトリック視点の都市開発シミュレーションゲームです。プレイヤーは市長となり、道路を引き、住宅・商業・工業・公共施設などを建設して都市を拡大していきます。Gemini AIが「AIアドバイザー」として裏で稼働し、都市の状況に合わせて目標の提示やニュースの配信を行ってくれます。
+## 主な機能
+* **3D都市建設システム:** グリッドベースのマップに直感的な操作で建物を配置。アイソメトリック（等角投影）視点の美しい3Dグラフィックス。
+* **リソース管理:** 資金（Money）と人口（Population）、経過日数（Day）の概念があり、建物の種類によって資金の増減や人口増加のバランスが変化します。
+* **AIを用いたダイナミックイベント生成:** 「Gemini API」を活用し、プレイヤーの進行度に合わせたミッション（目標）の生成や、都市の状況を反映したユニークなニュース報道を行います。
+* **土地の拡張:** 初期エリアから外側の土地を資金を使って購入し、開発エリアを広げていくことができます。
+* **統計グラフ:** 人口推移や資金推移などのプレイデータをグラフで可視化します。
+* **タイムアタックモード:** 「人口1,000人」「資金1,000,000」など、特定の条件をどれだけ早く達成できるかを競うゲームモードを備えています。
+## 技術スタック (Tech Stack)
+* **フロントエンド:** React 19、TypeScript
+* **3Dグラフィックス:** Three.js、React Three Fiber (R3F)、React Three Drei
+* **ノイズ生成（地形構築）:** Simplex Noise
+* **スタイリング:** Tailwind CSS (バージョン4)
+* **AIとの連携：** Google Gen AI SDK (@google/genes/ ジェミニAPI）
+* **データ可視化 (チャート):** チャートの再作成
+* **ビルドツール:** 素早く
