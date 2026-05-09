@@ -3,7 +3,7 @@
  * SPDX-License-Identifier: Apache-2.0
 */
 import React, { useState, useEffect, useCallback, useRef } from 'react';
-import { Grid, TileData, BuildingType, CityStats, AIGoal, NewsItem, TerrainType } from './types';
+import { Grid, TileData, BuildingType, CityStats, AIGoal, NewsItem, TerrainType, GameGoalType, HighScore } from './types';
 import { GRID_SIZE, BUILDINGS, TICK_RATE_MS, INITIAL_MONEY, LEVEL_REQUIREMENTS, INITIAL_STATS } from './constants';
 import IsoMap from './components/IsoMap';
 import UIOverlay from './components/UIOverlay';
@@ -55,7 +55,7 @@ const createInitialGrid = (): Grid => {
       }
 
       // Initial ownership: A larger initial area is owned.
-      const isOwned = dist < 4 && terrainType !== TerrainType.Water;
+      const isOwned = dist < 8.5 && terrainType !== TerrainType.Water;
       
       row.push({ 
         x, 
@@ -76,6 +76,8 @@ function App() {
   // --- Game State ---
   const [gameStarted, setGameStarted] = useState(false);
   const [aiEnabled, setAiEnabled] = useState(true);
+  const [gameGoal, setGameGoal] = useState<GameGoalType>('sandbox');
+  const [hasWon, setHasWon] = useState(false);
 
   const [grid, setGrid] = useState<Grid>(createInitialGrid);
   const [stats, setStats] = useState<CityStats>(INITIAL_STATS);
@@ -159,6 +161,37 @@ function App() {
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [gameStarted]);
+
+
+  // --- Win Condition Checker ---
+  useEffect(() => {
+    if (!gameStarted || hasWon || gameGoal === 'sandbox') return;
+
+    let isWin = false;
+    if (gameGoal === 'pop1000' && stats.population >= 1000) isWin = true;
+    if (gameGoal === 'pop5000' && stats.population >= 5000) isWin = true;
+    if (gameGoal === 'money1m' && stats.money >= 1000000) isWin = true;
+
+    if (isWin) {
+      setHasWon(true);
+      const currentTime = new Date().toISOString();
+      const newScore: HighScore = { goal: gameGoal, days: stats.day, date: currentTime };
+      
+      const existingStr = localStorage.getItem(`skymetropolis_highscore_${gameGoal}`);
+      if (existingStr) {
+        try {
+          const existing: HighScore = JSON.parse(existingStr);
+          if (stats.day < existing.days) {
+            localStorage.setItem(`skymetropolis_highscore_${gameGoal}`, JSON.stringify(newScore));
+          }
+        } catch (e) {
+          localStorage.setItem(`skymetropolis_highscore_${gameGoal}`, JSON.stringify(newScore));
+        }
+      } else {
+        localStorage.setItem(`skymetropolis_highscore_${gameGoal}`, JSON.stringify(newScore));
+      }
+    }
+  }, [stats, gameGoal, gameStarted, hasWon]);
 
 
   // --- Game Loop ---
@@ -406,9 +439,12 @@ function App() {
     }
   };
 
-  const handleStart = (enabled: boolean) => {
+  const handleStart = (enabled: boolean, goal: GameGoalType) => {
+    console.log("handleStart", enabled, goal);
     setAiEnabled(enabled);
+    setGameGoal(goal);
     setGameStarted(true);
+    setHasWon(false);
   };
 
   const handleReset = () => {
@@ -423,6 +459,7 @@ function App() {
     setSelectedTool(BuildingType.Road);
     setCurrentGoal(null);
     setNewsFeed([]);
+    setHasWon(false);
   };
 
   const cancelReset = () => {
@@ -439,6 +476,7 @@ function App() {
         population={stats.population}
         level={stats.level}
         money={stats.money}
+        gameStarted={gameStarted}
       />
       
       {/* Start Screen Overlay */}
@@ -458,27 +496,28 @@ function App() {
           isGeneratingGoal={isGeneratingGoal}
           aiEnabled={aiEnabled}
           onReset={handleReset}
+          gameGoal={gameGoal}
         />
       )}
 
       {pendingLandPurchase && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/40 backdrop-blur-md pointer-events-auto transition-all duration-300">
-          <div className="bg-white/5 p-6 rounded-[32px] border border-white/10 shadow-[0_8px_32px_rgba(0,0,0,0.5)] backdrop-blur-2xl max-w-sm w-full mx-4 animate-fade-in text-white relative overflow-hidden">
-             <div className="absolute top-0 right-0 w-32 h-32 bg-cyan-500/10 rounded-full blur-2xl"></div>
-            <h3 className="text-2xl font-bold mb-2 tracking-tight">Expand City</h3>
-            <p className="text-white/60 mb-6 text-sm tracking-wide">
+          <div className="bg-white/5 p-5 rounded-[24px] border border-white/10 shadow-[0_8px_32px_rgba(0,0,0,0.5)] backdrop-blur-2xl max-w-xs w-full mx-4 animate-fade-in text-white relative overflow-hidden">
+             <div className="absolute top-0 right-0 w-24 h-24 bg-cyan-500/10 rounded-full blur-xl"></div>
+            <h3 className="text-xl font-bold mb-2 tracking-tight">Expand City</h3>
+            <p className="text-white/60 mb-5 text-sm tracking-wide">
               Purchase this quadrant for <span className="font-bold text-emerald-400 font-mono tracking-tight drop-shadow-sm">${pendingLandPurchase.cost}</span>?
             </p>
-            <div className="flex gap-3">
+            <div className="flex gap-2">
               <button 
                 onClick={cancelLandPurchase}
-                className="flex-1 py-3 px-4 bg-white/5 hover:bg-white/10 text-white rounded-xl font-semibold transition-all text-sm border border-white/10 shadow-sm"
+                className="flex-1 py-2 px-3 bg-white/5 hover:bg-white/10 text-white rounded-xl font-semibold transition-all text-xs border border-white/10 shadow-sm"
               >
                 キャンセル
               </button>
               <button 
                 onClick={confirmLandPurchase}
-                className="flex-1 py-3 px-4 bg-emerald-500/20 hover:bg-emerald-500/30 text-emerald-300 rounded-xl font-bold transition-all shadow-[0_0_15px_rgba(16,185,129,0.3)] text-sm border border-emerald-500/30 tracking-wide"
+                className="flex-1 py-2 px-3 bg-emerald-500/20 hover:bg-emerald-500/30 text-emerald-300 rounded-xl font-bold transition-all shadow-[0_0_15px_rgba(16,185,129,0.3)] text-xs border border-emerald-500/30 tracking-wide"
               >
                 購入する
               </button>
@@ -489,25 +528,65 @@ function App() {
 
       {showResetConfirm && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/40 backdrop-blur-md pointer-events-auto transition-all duration-300">
-          <div className="bg-white/5 p-6 rounded-[32px] border border-white/10 shadow-[0_8px_32px_rgba(0,0,0,0.5)] backdrop-blur-2xl max-w-sm w-full mx-4 animate-fade-in text-white relative overflow-hidden">
-            <div className="absolute top-0 right-0 w-32 h-32 bg-red-500/10 rounded-full blur-2xl"></div>
-            <h3 className="text-2xl font-bold mb-2 text-red-400 tracking-tight">City Reset</h3>
-            <p className="text-white/60 mb-6 text-sm tracking-wide leading-relaxed">
+          <div className="bg-white/5 p-5 rounded-[24px] border border-white/10 shadow-[0_8px_32px_rgba(0,0,0,0.5)] backdrop-blur-2xl max-w-xs w-full mx-4 animate-fade-in text-white relative overflow-hidden">
+            <div className="absolute top-0 right-0 w-24 h-24 bg-red-500/10 rounded-full blur-xl"></div>
+            <h3 className="text-xl font-bold mb-2 text-red-400 tracking-tight">City Reset</h3>
+            <p className="text-white/60 mb-5 text-sm tracking-wide leading-relaxed">
               本当に最初からやり直しますか？すべての進行状況が失われます。
             </p>
-            <div className="flex gap-3">
+            <div className="flex gap-2">
               <button 
                 onClick={cancelReset}
-                className="flex-1 py-3 px-4 bg-white/5 hover:bg-white/10 text-white rounded-xl font-semibold transition-all text-sm border border-white/10 shadow-sm"
+                className="flex-1 py-2 px-3 bg-white/5 hover:bg-white/10 text-white rounded-xl font-semibold transition-all text-xs border border-white/10 shadow-sm"
               >
                 キャンセル
               </button>
               <button 
                 onClick={confirmReset}
-                className="flex-1 py-3 px-4 bg-red-500/20 hover:bg-red-500/30 text-red-300 rounded-xl font-bold transition-all shadow-[0_0_15px_rgba(239,68,68,0.3)] text-sm border border-red-500/30 tracking-wide"
+                className="flex-1 py-2 px-3 bg-red-500/20 hover:bg-red-500/30 text-red-300 rounded-xl font-bold transition-all shadow-[0_0_15px_rgba(239,68,68,0.3)] text-xs border border-red-500/30 tracking-wide"
               >
                 リセットする
               </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {hasWon && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/60 backdrop-blur-md pointer-events-auto transition-all duration-500">
+          <div className="bg-white/10 p-8 rounded-[32px] border border-yellow-500/30 shadow-[0_16px_64px_rgba(234,179,8,0.2)] backdrop-blur-2xl max-w-md w-full mx-4 animate-fade-in text-white relative overflow-hidden text-center">
+             <div className="absolute top-0 right-0 w-32 h-32 bg-yellow-500/20 rounded-full blur-2xl"></div>
+             <div className="absolute bottom-0 left-0 w-32 h-32 bg-cyan-500/20 rounded-full blur-2xl"></div>
+            
+            <div className="relative z-10">
+              <h2 className="text-4xl font-extrabold mb-2 bg-gradient-to-r from-yellow-200 to-yellow-500 bg-clip-text text-transparent drop-shadow-sm">
+                GOAL CLEARED!
+              </h2>
+              <p className="text-white/80 mb-6 text-sm tracking-widest uppercase">
+                目標を達成しました
+              </p>
+              
+              <div className="bg-black/30 rounded-2xl p-6 mb-8 border border-white/5 inline-block w-full">
+                <span className="block text-xs uppercase tracking-[0.2em] text-white/50 mb-1">Clear Time</span>
+                <span className="text-5xl font-mono font-bold text-cyan-300 drop-shadow-[0_0_15px_rgba(103,232,249,0.5)]">
+                  {stats.day} <span className="text-xl">Days</span>
+                </span>
+              </div>
+
+              <div className="flex gap-3 mt-4">
+                <button 
+                  onClick={() => setHasWon(false)}
+                  className="flex-1 py-3 px-4 bg-white/5 hover:bg-white/10 text-white rounded-xl font-semibold transition-all text-sm border border-white/10 shadow-sm"
+                >
+                  都市開発を続ける
+                </button>
+                <button 
+                  onClick={handleReset}
+                  className="flex-1 py-3 px-4 bg-cyan-500/20 hover:bg-cyan-500/30 text-cyan-300 rounded-xl font-bold transition-all shadow-[0_0_15px_rgba(34,211,238,0.3)] text-sm border border-cyan-500/30 tracking-wide"
+                >
+                  タイトルに戻る
+                </button>
+              </div>
             </div>
           </div>
         </div>

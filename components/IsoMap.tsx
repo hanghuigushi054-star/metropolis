@@ -810,7 +810,7 @@ const Cursor = ({ x, y, color, height = 0, isUnowned = false, cost = 0, canAffor
       <Outlines thickness={0.05} color="white" />
       {isUnowned && !isWater && (
         <Html position={[0,0,0]} transform rotation={[Math.PI / 2, Math.PI, Math.PI]} scale={0.5}>
-            <div className={`px-2 py-1 rounded shadow-lg whitespace-nowrap font-bold text-xs ${canAfford ? 'bg-yellow-400 text-yellow-900 border border-yellow-300' : 'bg-red-500 text-white border border-red-400'}`}>
+            <div className={`pointer-events-none px-2 py-1 rounded shadow-lg whitespace-nowrap font-bold text-xs ${canAfford ? 'bg-yellow-400 text-yellow-900 border border-yellow-300' : 'bg-red-500 text-white border border-red-400'}`}>
                 {canAfford ? '土地を購入' : '資金不足'} ${cost}
             </div>
         </Html>
@@ -826,9 +826,10 @@ interface IsoMapProps {
   population: number;
   level: number;
   money: number;
+  gameStarted?: boolean;
 }
 
-const IsoMap: React.FC<IsoMapProps> = ({ grid, onTileClick, hoveredTool, population, level, money }) => {
+const IsoMap: React.FC<IsoMapProps> = ({ grid, onTileClick, hoveredTool, population, level, money, gameStarted = true }) => {
   const [hoveredTile, setHoveredTile] = useState<{x: number, y: number} | null>(null);
 
   const handleHover = useCallback((x: number, y: number) => {
@@ -852,14 +853,14 @@ const IsoMap: React.FC<IsoMapProps> = ({ grid, onTileClick, hoveredTool, populat
   const previewPos = hoveredTile ? gridToWorld(hoveredTile.x, hoveredTile.y) : [0,0,0];
 
   return (
-    <div className="absolute inset-0 bg-sky-900 touch-none">
-      <Canvas shadows dpr={[1, 1.5]} gl={{ antialias: true }}>
-        <OrthographicCamera makeDefault zoom={45} position={[20, 20, 20]} near={-100} far={200} />
+    <div className="absolute inset-0 bg-sky-900 touch-none z-0">
+      <Canvas dpr={[1, 1]} gl={{ antialias: false, powerPreference: "high-performance" }} frameloop={gameStarted ? "always" : "demand"} style={{ pointerEvents: gameStarted ? 'auto' : 'none' }}>
+        <OrthographicCamera makeDefault zoom={35} position={[30, 30, 30]} near={-100} far={200} />
         
         <MapControls 
           enableRotate={true}
           enableZoom={true}
-          minZoom={20}
+          minZoom={10}
           maxZoom={120}
           maxPolarAngle={Math.PI / 2.2}
           minPolarAngle={0.1}
@@ -868,13 +869,9 @@ const IsoMap: React.FC<IsoMapProps> = ({ grid, onTileClick, hoveredTool, populat
 
         <ambientLight intensity={0.5} color="#cceeff" />
         <directionalLight
-          castShadow
           position={[15, 20, 10]}
           intensity={2}
           color="#fffbeb"
-          shadow-mapSize={[2048, 2048]}
-          shadow-camera-left={-15} shadow-camera-right={15}
-          shadow-camera-top={15} shadow-camera-bottom={-15}
         >
         </directionalLight>
         <Environment preset="city" />

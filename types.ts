@@ -85,6 +85,14 @@ export interface AIGoal {
   completed: boolean;
 }
 
+export type GameGoalType = 'sandbox' | 'pop1000' | 'pop5000' | 'money1m' | 'maxLevel';
+
+export interface HighScore {
+  goal: GameGoalType;
+  days: number;
+  date: string;
+}
+
 export interface NewsItem {
   id: string;
   text: string;
